@@ -1,1 +1,82 @@
+```{r echo=F}
+options(warn=-1)
+```
+## Preparation of the training data frame
+ 
+Fist of of all we load the data
 
+```{r}
+training_base = read.csv("../data/pml-training.csv")
+testing_base  = read.csv("../data/pml-testing.csv")
+```
+
+Variables refered to bell, belt, dum, arm and fore arm are selected
+
+```{r}
+all_var = names(training_base)
+var_selected = grep("bell|belt|dum|arm", all_var)
+```
+
+Other variables are eliminated
+
+```{r}
+train_numeric = training_base[,var_selected]
+```
+
+Since there are a lot of variables containg NA values, we 
+substitute non-numeric by NA and eliminating columns containing NA
+
+```{r}
+train_numeric = lapply(train_numeric,as.character)
+train_numeric = lapply(train_numeric,as.numeric)
+train_numeric = as.data.frame(train_numeric)
+training = cbind(training_base$classe,train_numeric) 
+training = training[,colSums(is.na(training)) == 0]
+```
+
+Finally we add the classes to the data frame
+
+```{r}
+names(training)[1] = paste("classe")
+```
+## Creation of the model
+
+Now we create a model to predict the "classe"
+
+We load the library "caret"
+
+```{r}
+require(caret)
+```
+
+We create a partition of available training data. Since we have a lot of 
+values and this is a prototype we choose a small probability of being selected
+
+```{r}
+prob =0.1
+set.seed=123
+inTrain = createDataPartition(y=training$classe, p=prob,list=F)
+train_train = training[inTrain,]
+train_test = training[-inTrain,]
+```
+
+Now we create the model
+```{r}
+model = train(classe~.,data=train_train,method="rf")
+```
+## Application of the model to the data not included in the model
+
+We now apply to the remaining data
+
+```{r}
+cm = confusionMatrix(train_test$classe,predict(model,train_test))
+print(cm)
+```
+
+We can see that the accuracy is higher than .94
+
+## Application to the testing data
+
+```{r}
+predict(model, testing_base)
+```
